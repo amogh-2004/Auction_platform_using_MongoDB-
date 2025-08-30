@@ -6,16 +6,13 @@ from datetime import datetime, timedelta
 import bcrypt
 # import timestream
 
-# ----------------- MongoDB Setup -----------------
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["auction_platform"]
 users_col = db["users"]
 auctions_col = db["auctions"]
 
-# Ensure unique usernames
 users_col.create_index("username", unique=True)
 
-# ----------------- User Auth -----------------
 def register_user(username, password, role, email):
     if users_col.find_one({"username": username}):
         return False, "Username already exists!"
@@ -38,7 +35,6 @@ def login_user(username, password):
         return True, user
     return False, None
 
-# ----------------- Auction Functions -----------------
 def create_auction(item_name, description, base_price, seller, duration=60):
     end_time = datetime.utcnow() + timedelta(seconds=duration)
     auctions_col.insert_one({
@@ -76,10 +72,9 @@ def close_finished_auctions():
         {"$set": {"active": False}}
     )
 
-# ----------------- Streamlit App -----------------
+# Streamlit App 
 st.set_page_config(page_title="Auction Platform", layout="wide")
 
-# Sidebar: Register / Login / Logout
 with st.sidebar:
     st.title("🔑 User Panel")
 
@@ -115,15 +110,13 @@ with st.sidebar:
             del st.session_state.user
             st.success("Logged out!")
 
-# If not logged in, stop here
 if "user" not in st.session_state:
     st.stop()
 
-# Tabs
 tabs = st.tabs(["🏠 Home", "⚡ Auctions", "📜 History"])
 user = st.session_state.user
 
-# ----------------- Home Tab -----------------
+# Home Tab 
 with tabs[0]:
     st.header("🏠 Current Auction")
     close_finished_auctions()
@@ -153,7 +146,7 @@ with tabs[0]:
     else:
         st.info("No active auctions right now!")
 
-# ----------------- Auctions Tab -----------------
+# Auctions Tab 
 with tabs[1]:
     st.header("⚡ Auctions")
 
@@ -191,14 +184,14 @@ with tabs[1]:
                             success, msg = place_bid(item["_id"], user["id"], bid_amt)
                             if success:
                                 st.success(msg)
-                                st.rerun()  # refresh to show updated bid
+                                st.rerun()  
                             else:
                                 st.error(msg)
                     except ValueError:
                         st.error("Please enter a valid number")
 
 
-# History Tab 
+# History Tab
 with tabs[2]:
     st.header("📜 Auction History")
     past_auctions = list(auctions_col.find({"active": False}).sort("end_time", -1))
@@ -214,3 +207,4 @@ with tabs[2]:
                     st.success(f"Winner: {bidder['username']} (${item['current_highest_bid']:.2f})")
                 else:
                     st.warning("No bids placed")
+
